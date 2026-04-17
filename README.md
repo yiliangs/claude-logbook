@@ -1,20 +1,77 @@
-# claude-logbook
+# claude-memento
 
-A three-layer activity log + per-project state for [Claude Code](https://claude.com/claude-code), written by hooks per turn and synthesized in the background by any OpenAI-compatible LLM.
+> **Claude Code forgets. This remembers.**
 
-> **Status:** v0.1 — public template. Sample data in `short_log/`, `long_logs/`, and `project_cards/myapp.yaml` shows what the pipeline produces; replace with your own once wired in.
+Every session, Claude starts blank. You re-explain the project, re-paste
+the goal, re-walk dead ends you already ruled out yesterday. claude-memento
+is a small archive that grows beside your work — written by hooks and a
+small LLM. It recaps each session into a structured record and hands the
+recap back to Claude when you start the next one, so it picks up where
+you left off.
 
-## Why
+Two pieces, plus a bonus:
 
-Claude Code already keeps raw transcripts at `~/.claude/projects/.../*.jsonl`. They are exhaustive but they are **not queryable**, **not synthesized**, and **not loaded back into future sessions**. This template fills that gap with three thin layers:
+- a **chain** — `transcript → long log → project card` — that turns each
+  session into a structured record, and the project into a living state
+  document
+- an **`/audit`** slash command that lets you query the whole archive in
+  plain English
+- a **short log** — turn-by-turn JSONL index — for high-cardinality
+  queries; optional
 
-| Layer | Granularity | Purpose | Where |
-|---|---|---|---|
-| **Short log** | Per-turn | Queryable index for retrieval / search | `short_log/YYYY-MM.jsonl` |
-| **Long log** | Per-session | Synthesized narrative + decisions + dead ends | `long_logs/<session_id>.yaml` |
-| **Project card** | Per-project | Living state snapshot, auto-injected at SessionStart | `project_cards/<project>.yaml` |
+> **Status:** v0.1 — public template. Sample data in `short_log/`,
+> `long_logs/`, and `project_cards/myapp.yaml` shows what the pipeline
+> produces; replace with your own once wired in.
 
-Each layer has a different cadence, lifetime, and consumer. Synthesis flows upward: short log → raw transcript → long log + project card.
+## The chain
+
+Every session leaves a structured trace.
+
+**Transcript** — what happened, turn by turn. Written in real-time by
+`UserPromptSubmit` + `Stop` hooks into `transcripts/<session_id>.md`.
+Pruned after synthesis (default 30-day retention).
+
+**Long log** — what mattered. A scheduled synthesis pass recaps the
+transcript into `long_logs/<session_id>.yaml`, organized around four
+named blocks:
+
+- *arc* — what you set out to do vs. what actually happened, and where it pivoted
+- *decisions* — choices made and their rationale, so they can be challenged later
+- *dead ends* — what was tried and why it failed, so future-you doesn't walk them again
+- *open questions* — what survived the session unresolved
+
+Each long log is a document meant to be re-read. The schema lives at
+[`schemas/long_log_schema.md`](schemas/long_log_schema.md).
+
+**Project card** — what the project looks like right now. Synthesized
+alongside the long log into `project_cards/<project>.yaml`, then
+auto-injected as `additionalContext` when Claude opens a session in
+that project. This is what gives Claude continuity across sessions.
+
+## The audit
+
+A project-scoped `/audit` slash command ships with the repo. From inside
+the memento clone, ask anything in plain English:
+
+```
+/audit when did I first work on the cache eviction bug
+/audit what dead ends did I hit last week
+/audit peak hours by weekday over the last month
+/audit analyze my workflow weakspots
+```
+
+The agent composes two primitives from `scripts/audit.py` (`filter` and
+`aggregate` over `short_log`) with `Read` over long logs and project
+cards, then synthesizes a cited answer — pointing at the session, the
+decision, and the file.
+
+## The short log (optional)
+
+A monthly JSONL index at `short_log/YYYY-MM.jsonl`. Each turn appends
+one line with timestamps, project, machine, and a small LLM-filled
+`question_summary` + `response_core`. Useful for high-cardinality queries
+("how many times did I touch the auth module last month?"). The chain
+works without it.
 
 ## Pipeline at a glance
 
@@ -60,44 +117,18 @@ Each layer has a different cadence, lifetime, and consumer. Synthesis flows upwa
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-## Layout
-
-```
-claude-logbook/
-├── scripts/
-│   ├── _api.py                     # OpenAI-compatible API helper
-│   ├── hook.py                     # UserPromptSubmit
-│   ├── hook_stop.py                # Stop
-│   ├── session_start.py            # SessionStart (project_card injection)
-│   ├── synthesizer.py              # Scheduled synthesis
-│   └── audit.py                    # retrieval primitives (filter + aggregate)
-├── run_synth.bat                   # Windows Task Scheduler wrapper
-├── .claude/commands/audit.md       # /audit slash command
-├── docs/settings.example.json      # hook + env wiring (sanitized)
-├── schemas/
-│   ├── short_log_schema.md
-│   ├── long_log_schema.md
-│   ├── project_card_schema.md
-│   ├── tone.md                     # prose tone (loaded with prose-producing calls)
-│   └── output_rules.md             # YAML / null / identifier rules
-├── short_log/YYYY-MM.jsonl         # sample inside
-├── long_logs/<session_id>.yaml     # sample inside
-├── project_cards/
-│   ├── global.yaml                 # skeleton — fill or delete
-│   └── <project>.yaml              # sample inside (myapp.yaml)
-└── transcripts/                    # ephemeral; pruned after synthesis
-```
-
 ## Setup
 
 ### 1. Clone
 
 ```bash
-git clone https://github.com/<you>/claude-logbook.git ~/src/claude-logbook
-cd ~/src/claude-logbook
+git clone https://github.com/<you>/claude-memento.git ~/src/claude-memento
+cd ~/src/claude-memento
 ```
 
-The directory **is** the storage backend — pick a path you'll keep around. Multi-machine? Push it to your own private repo, then clone it on each machine.
+The directory **is** the storage backend — pick a path you'll keep
+around. Multi-machine? Push it to your own private repo and clone it on
+each machine.
 
 ### 2. Pick LLM providers
 
@@ -122,76 +153,101 @@ export ACTIVITY_LOG_SYNTH_MODEL="<large-synthesis-model-id>"
 
 ### 3. Wire the hooks
 
-Merge the relevant block from [`docs/settings.example.json`](docs/settings.example.json) into `~/.claude/settings.json` (or a project-local `.claude/settings.json`). Replace `<REPO>` with the absolute path to your clone.
-
-The four wires:
+Merge the relevant block from [`docs/settings.example.json`](docs/settings.example.json)
+into `~/.claude/settings.json` (or a project-local `.claude/settings.json`).
+Replace `<REPO>` with the absolute path to your clone.
 
 | Hook | Script | What it does |
 |---|---|---|
 | `UserPromptSubmit` | `scripts/hook.py` | Append prompt to transcript; write placeholder short_log entry |
 | `Stop` | `scripts/hook_stop.py` | Append assistant reply; fill AI fields on the short_log entry |
-| `Stop` (optional) | `git add/commit/push` | Auto-sync the log across machines |
+| `Stop` (optional) | `git add/commit/push` | Auto-sync the recap across machines |
 | `SessionStart` | `scripts/session_start.py` | Inject project card(s) as additional context |
 
 ### 4. Schedule synthesis
 
-`scripts/synthesizer.py` is idempotent: it scans for transcripts without a corresponding long log, processes them, and prunes raw transcripts past the retention window. Wire it however suits you:
+`scripts/synthesizer.py` is idempotent — it scans for transcripts
+without a corresponding long log, processes them, and prunes raw
+transcripts past the retention window. Wire it however suits you:
 
 **Linux / macOS — cron:**
 ```cron
-30 3 * * * cd /home/you/src/claude-logbook && /usr/bin/python3 scripts/synthesizer.py >> last_run.log 2>&1
+30 3 * * * cd /home/you/src/claude-memento && /usr/bin/python3 scripts/synthesizer.py >> last_run.log 2>&1
 ```
 
-**Windows — Task Scheduler:** point a daily trigger at `run_synth.bat`. It cd's to the repo root and invokes `scripts/synthesizer.py`, inheriting your user environment vars.
+**Windows — Task Scheduler:** point a daily trigger at `run_synth.bat`.
+It cd's to the repo root and invokes `scripts/synthesizer.py`,
+inheriting your user environment vars.
 
-**Cloud — [Claude Schedule](https://docs.claude.com/en/docs/claude-code/schedule)** (or any remote cron): runs even when your machine is off. The synthesizer pulls before reading and pushes after writing, so multi-trigger conflicts resolve via fast-forward.
+**Cloud — [Claude Schedule](https://docs.claude.com/en/docs/claude-code/schedule)**
+(or any remote cron): runs even when your machine is off. The
+synthesizer pulls before reading and pushes after writing, so
+multi-trigger conflicts resolve via fast-forward.
 
-### 5. (Optional) `/audit` slash command
-
-The repo ships with a project-scoped slash command at `.claude/commands/audit.md`. From inside the activity-log clone, ask any natural-language question:
+## Layout
 
 ```
-/audit what did I do last week
-/audit when did I first work on the cache eviction bug
-/audit peak hours by weekday over the last month
-/audit analyze my workflow weakspots
+claude-memento/
+├── scripts/
+│   ├── _api.py                     # OpenAI-compatible API helper
+│   ├── hook.py                     # UserPromptSubmit
+│   ├── hook_stop.py                # Stop
+│   ├── session_start.py            # SessionStart (project_card injection)
+│   ├── synthesizer.py              # scheduled synthesis
+│   └── audit.py                    # retrieval primitives (filter + aggregate)
+├── run_synth.bat                   # Windows Task Scheduler wrapper
+├── .claude/commands/audit.md       # /audit slash command
+├── docs/settings.example.json      # hook + env wiring (sanitized)
+├── schemas/
+│   ├── short_log_schema.md
+│   ├── long_log_schema.md
+│   ├── project_card_schema.md
+│   ├── tone.md                     # prose tone (loaded with prose-producing calls)
+│   └── output_rules.md             # YAML / null / identifier rules
+├── short_log/YYYY-MM.jsonl
+├── long_logs/<session_id>.yaml
+├── project_cards/
+│   ├── global.yaml                 # skeleton — fill or delete
+│   └── <project>.yaml
+└── transcripts/                    # ephemeral; pruned after synthesis
 ```
-
-The agent composes two primitives from `audit.py` (`filter` and `aggregate` over `short_log`) with `Read` over long_logs / project_cards, then synthesizes a cited answer.
-
-## How it stays out of your way
-
-- **Fail-open everywhere** — missing API key, network error, parse failure → hook exits 0; the user-facing turn never breaks.
-- **Idempotent** — every write is keyed by `session_id` or appends; reruns are safe.
-- **Pruned automatically** — raw transcripts deleted after the retention window (default 30 days) once a long log exists.
-- **Skips `/remind`** (and any prompt prefix you add) so meta-queries don't pollute the log.
 
 ## Schemas
 
-The four documents in `schemas/` are the source of truth for what each layer holds. They are loaded into the synthesis prompt — edit them to change behavior.
+The five documents in `schemas/` are the source of truth for what each
+layer holds. They're loaded into the synthesis prompt — edit them to
+change behavior.
 
-- [`schemas/short_log_schema.md`](schemas/short_log_schema.md) — per-turn entry shape
-- [`schemas/long_log_schema.md`](schemas/long_log_schema.md) — per-session synthesis shape
-- [`schemas/project_card_schema.md`](schemas/project_card_schema.md) — per-project card shape, update behavior, sanitize rules
-- [`schemas/tone.md`](schemas/tone.md) — prose style (loaded with prose-producing calls)
-- [`schemas/output_rules.md`](schemas/output_rules.md) — YAML / null / identifier rules (loaded with every call)
+- [`short_log_schema.md`](schemas/short_log_schema.md) — per-turn entry shape
+- [`long_log_schema.md`](schemas/long_log_schema.md) — per-session synthesis shape, including the `arc` / `decisions` / `dead_ends` / `open_questions` blocks
+- [`project_card_schema.md`](schemas/project_card_schema.md) — per-project card shape, update behavior, sanitize rules
+- [`tone.md`](schemas/tone.md) — prose style (loaded with prose-producing calls)
+- [`output_rules.md`](schemas/output_rules.md) — YAML / null / identifier rules (loaded with every call)
 
-`tone.md` and `output_rules.md` are **provider-agnostic** — swap the underlying LLM without rewriting them.
+`tone.md` and `output_rules.md` are **provider-agnostic** — swap the
+underlying LLM without rewriting them.
 
-## Project slug resolution
+## Design notes
 
-Both `hook.py` and `session_start.py` resolve the project name via:
+**Project slug resolution.** Both `hook.py` and `session_start.py`
+resolve the project name via the basename of the current git repo root.
+Override per-repo by adding `project: <slug>` to
+`<repo>/.claude/project.yaml` — useful for multi-repo projects
+(`myapp-api` + `myapp-web` both feeding one `myapp` card).
 
-1. **Default**: `os.path.basename(git_repo_root)` of the current working directory.
-2. **Override**: if `<repo>/.claude/project.yaml` contains `project: <slug>`, use that slug.
+**Stays out of your way.** Every hook is fail-open: missing API key,
+network error, parse failure → exit 0; the user-facing turn never
+breaks. Every write is idempotent — keyed by `session_id` or appended;
+reruns are safe. Raw transcripts are pruned after the retention window
+once a long log exists. Skips `/remind` and any prefix you add, so
+meta-queries don't pollute the recap.
 
-Multi-repo projects (e.g. `myapp-api` + `myapp-web` both wanting to feed `myapp`) use the override to share one card.
-
-## What this is NOT
-
-- Not a replacement for `git log`, shell history, or Claude Code's raw `~/.claude/projects/.../*.jsonl` transcripts. It sits **on top** of them.
-- Not loaded into Claude's context automatically — except project cards, which **are** injected at `SessionStart` by design.
-- Not opinionated about which provider you use. Two env-var sets, OpenAI-compatible, anything that speaks `/chat/completions` works.
+**What this is NOT.** Not a replacement for `git log`, shell history,
+or Claude Code's raw `~/.claude/projects/.../*.jsonl` transcripts — it
+sits on top of them. Not loaded into Claude's context automatically,
+except project cards (which are, by design, at `SessionStart`). Not
+opinionated about which provider you use — anything that speaks
+OpenAI-compatible `/chat/completions` works.
 
 ## License
 
