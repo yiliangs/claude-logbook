@@ -27,26 +27,38 @@ Two pieces, plus a bonus:
 
 Every session leaves a structured trace.
 
-**Transcript** — what happened, turn by turn. Written in real-time by
-`UserPromptSubmit` + `Stop` hooks into `transcripts/<session_id>.md`.
-Pruned after synthesis (default 30-day retention).
+```
+┌────────────────────┐    ┌────────────────────┐    ┌────────────────────┐
+│    transcript      │    │      long log      │    │    project card    │
+│ per-session, raw   │    │ per-session, dense │    │ per-project, live  │
+├────────────────────┤    ├────────────────────┤    ├────────────────────┤
+│ prompts            │    │ arc                │    │ where you left off │
+│ replies            │ ─▶ │ decisions          │ ─▶ │ what's next        │
+│ tool calls         │    │ dead ends          │    │ what's at stake    │
+│                    │    │ open questions     │    │ open threads       │
+├────────────────────┤    ├────────────────────┤    ├────────────────────┤
+│ written live       │    │ recapped by LLM    │    │ rewritten with     │
+│ pruned after 30d   │    │ kept forever       │    │   each long log    │
+│                    │    │                    │    │ auto-injected at   │
+│                    │    │                    │    │   SessionStart     │
+└────────────────────┘    └────────────────────┘    └────────────────────┘
+   what happened              what mattered            where you are now
+```
 
-**Long log** — what mattered. A scheduled synthesis pass recaps the
-transcript into `long_logs/<session_id>.yaml`, organized around four
-named blocks:
+The **long log** is the differentiator — not a summary, but a structured
+recap built around four named blocks:
 
 - *arc* — what you set out to do vs. what actually happened, and where it pivoted
 - *decisions* — choices made and their rationale, so they can be challenged later
 - *dead ends* — what was tried and why it failed, so future-you doesn't walk them again
 - *open questions* — what survived the session unresolved
 
-Each long log is a document meant to be re-read. The schema lives at
+Each one is a document meant to be re-read. Full schema:
 [`schemas/long_log_schema.md`](schemas/long_log_schema.md).
 
-**Project card** — what the project looks like right now. Synthesized
-alongside the long log into `project_cards/<project>.yaml`, then
-auto-injected as `additionalContext` when Claude opens a session in
-that project. This is what gives Claude continuity across sessions.
+The **project card** is what makes the chain close back on itself: it's
+auto-injected as `additionalContext` at `SessionStart`, so the next
+session begins with the previous one already loaded.
 
 ## The audit
 
