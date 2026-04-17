@@ -1,0 +1,4 @@
+# Raw per-session transcripts land here.
+# Pruned after `--prune-older-than DAYS` once a long log exists.
+# Sample transcript not committed — the long log under long_logs/ shows
+# what synthesis produces from a real one.

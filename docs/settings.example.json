@@ -1,0 +1,61 @@
+{
+  "_comment": "Excerpt for ~/.claude/settings.json (or your project's .claude/settings.json). Replace <REPO> with the absolute path to your clone of claude-activity-log-template. Only the four hooks below are required by this project; merge them into your existing settings rather than overwriting.",
+
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python <REPO>/hook.py"
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python <REPO>/hook_stop.py",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "_comment": "Optional: auto-commit + push the activity log so multi-machine syncs see new transcripts. Drop this block if you do not want auto-push.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd <REPO> 2>/dev/null && git add -A 2>/dev/null && (git diff --cached --quiet 2>/dev/null || (git commit -m \"log: turn entries\" -q 2>/dev/null && git push -q 2>/dev/null)); true",
+            "async": true
+          }
+        ]
+      }
+    ],
+
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python <REPO>/session_start.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+
+  "_env_comment": "Set these in your shell, ~/.bashrc, or here under \"env\". The SYNTH set is optional — if unset, the synthesizer falls back to the small model set.",
+  "env": {
+    "ACTIVITY_LOG_API_BASE": "https://api.example.com/v1",
+    "ACTIVITY_LOG_API_KEY": "<your-key>",
+    "ACTIVITY_LOG_MODEL": "<small-fast-model-id>",
+
+    "ACTIVITY_LOG_SYNTH_API_BASE": "https://api.example.com/v1",
+    "ACTIVITY_LOG_SYNTH_API_KEY": "<your-key>",
+    "ACTIVITY_LOG_SYNTH_MODEL": "<large-synthesis-model-id>"
+  }
+}

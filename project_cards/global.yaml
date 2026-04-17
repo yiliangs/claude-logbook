@@ -1,0 +1,22 @@
+# Global project-card — cross-project knowledge
+#
+# Auto-loaded by SessionStart alongside every project's card. Use for:
+#   - Infrastructure-level dead ends (e.g. "Provider X blocks cloud egress IPs")
+#   - Universal invariants (e.g. "All services target Python 3.11")
+#   - Shared external dependencies
+#
+# Human-maintained. The synthesizer does not auto-promote entries here —
+# promote manually when an entry is clearly cross-project.
+#
+# Keep it small: it is loaded into EVERY session's context.
+
+project: global
+scope: cross-project
+
+constraints: []
+
+dead_ends: []
+
+invariants: []
+
+external_dependencies: []

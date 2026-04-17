@@ -1,0 +1,46 @@
+project: myapp
+parent_project: null
+created_at: 2026-04-10T11:00:00Z
+last_updated: 2026-04-10T11:00:00Z
+last_synthesizing_session: a1b2c3d4-1234-5678-9abc-def012345678
+session_count: 1
+
+current_focus: >
+  Stabilizing the rate limiter under burst load before the 1.5 release; one race fixed and gated by regression test, watching for related issues on adjacent code paths.
+
+active_threads:
+  - id: a1b2c3d4-1234-5678-9abc-def012345678-t1
+    statement: >
+      Confirm the same race does not exist in the per-IP throttler that shares refill logic with the per-key bucket.
+    blocking_on: null
+    last_active_session: a1b2c3d4-1234-5678-9abc-def012345678
+    first_seen_session: a1b2c3d4-1234-5678-9abc-def012345678
+
+constraints:
+  - id: a1b2c3d4-1234-5678-9abc-def012345678-c1
+    statement: >
+      All token-bucket refill paths must hold a per-key lock for the read-modify-write region.
+    rationale: >
+      Without it, concurrent requests on the same key race and produce phantom 503s under burst load.
+    source_session: a1b2c3d4-1234-5678-9abc-def012345678
+    superseded_constraints: []
+    superseded_at_session: null
+
+dead_ends: []
+
+invariants:
+  - id: a1b2c3d4-1234-5678-9abc-def012345678-i1
+    statement: >
+      Rate-limit contention is bounded by tier count (~50), not request volume — favor lock-based simplicity over lock-free retry loops.
+    source_session: a1b2c3d4-1234-5678-9abc-def012345678
+
+artifacts_in_flight:
+  - path: src/ratelimit/token_bucket.py
+    state: Per-key lock wraps refill_tokens(); awaiting parallel audit of per-IP throttler.
+    last_touched_session: a1b2c3d4-1234-5678-9abc-def012345678
+
+external_dependencies: []
+
+card_quality: high
+quality_reasoning: >
+  One full session synthesized; constraint and invariant both have rationale; thread points at the next concrete check.
