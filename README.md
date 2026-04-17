@@ -1,4 +1,4 @@
-# claude-activity-log-template
+# claude-logbook
 
 A three-layer activity log + per-project state for [Claude Code](https://claude.com/claude-code), written by hooks per turn and synthesized in the background by any OpenAI-compatible LLM.
 
@@ -63,7 +63,7 @@ Each layer has a different cadence, lifetime, and consumer. Synthesis flows upwa
 ## Layout
 
 ```
-claude-activity-log-template/
+claude-logbook/
 ├── _api.py                         # OpenAI-compatible API helper
 ├── hook.py                         # UserPromptSubmit
 ├── hook_stop.py                    # Stop
@@ -92,8 +92,8 @@ claude-activity-log-template/
 ### 1. Clone
 
 ```bash
-git clone https://github.com/<you>/claude-activity-log-template.git ~/src/claude-activity-log
-cd ~/src/claude-activity-log
+git clone https://github.com/<you>/claude-logbook.git ~/src/claude-logbook
+cd ~/src/claude-logbook
 ```
 
 The directory **is** the storage backend — pick a path you'll keep around. Multi-machine? Push it to your own private repo, then clone it on each machine.
@@ -138,7 +138,7 @@ The four wires:
 
 **Linux / macOS — cron:**
 ```cron
-30 3 * * * cd /home/you/src/claude-activity-log && /usr/bin/python3 synthesizer.py >> last_run.log 2>&1
+30 3 * * * cd /home/you/src/claude-logbook && /usr/bin/python3 synthesizer.py >> last_run.log 2>&1
 ```
 
 **Windows — Task Scheduler:** point a daily trigger at `run_synth.bat`. It cd's to the script directory and inherits your user environment vars.

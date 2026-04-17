@@ -1,5 +1,5 @@
 {
-  "_comment": "Excerpt for ~/.claude/settings.json (or your project's .claude/settings.json). Replace <REPO> with the absolute path to your clone of claude-activity-log-template. Only the four hooks below are required by this project; merge them into your existing settings rather than overwriting.",
+  "_comment": "Excerpt for ~/.claude/settings.json (or your project's .claude/settings.json). Replace <REPO> with the absolute path to your clone of claude-logbook. Only the four hooks below are required by this project; merge them into your existing settings rather than overwriting.",
 
   "hooks": {
     "UserPromptSubmit": [
