@@ -33,7 +33,7 @@ Every session leaves a structured trace.
 │ per-session, raw   │    │ per-session, dense │    │ per-project, live  │
 ├────────────────────┤    ├────────────────────┤    ├────────────────────┤
 │ prompts            │    │ arc                │    │ where you left off │
-│ replies            │ ─▶ │ decisions          │ ─▶ │ what's next        │
+│ replies            │ ─> │ decisions          │ ─> │ what's next        │
 │ tool calls         │    │ dead ends          │    │ what's at stake    │
 │                    │    │ open questions     │    │ open threads       │
 ├────────────────────┤    ├────────────────────┤    ├────────────────────┤
