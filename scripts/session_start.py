@@ -19,7 +19,7 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-LOG_REPO = SCRIPT_DIR
+LOG_REPO = os.path.dirname(SCRIPT_DIR)
 PROJECT_CARDS_DIR = os.path.join(LOG_REPO, "project_cards")
 GLOBAL_CARD_PATH = os.path.join(PROJECT_CARDS_DIR, "global.yaml")
 

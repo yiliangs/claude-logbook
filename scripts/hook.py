@@ -23,7 +23,7 @@ from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-LOG_REPO = SCRIPT_DIR
+LOG_REPO = os.path.dirname(SCRIPT_DIR)
 SHORT_LOG_DIR = os.path.join(LOG_REPO, "short_log")
 TRANSCRIPTS_DIR = os.path.join(LOG_REPO, "transcripts")
 

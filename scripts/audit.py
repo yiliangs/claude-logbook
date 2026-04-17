@@ -23,7 +23,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SHORT_LOG_DIR = os.path.join(SCRIPT_DIR, "short_log")
+LOG_REPO = os.path.dirname(SCRIPT_DIR)
+SHORT_LOG_DIR = os.path.join(LOG_REPO, "short_log")
 
 
 # ---------- time parsing ----------

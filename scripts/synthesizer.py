@@ -18,12 +18,12 @@ Designed for a scheduled routine (Claude Schedule remote agent, cron, Task Sched
 or manual invocation). Idempotent and crash-resilient: if anything fails, the
 transcript stays and retries on the next run.
 
-Usage:
-    python synthesizer.py                          # process all unsynthesized + prune 30d default
-    python synthesizer.py --limit 5                # cap synthesis per run (oldest first)
-    python synthesizer.py --prune-older-than 60    # override retention window
-    python synthesizer.py --no-prune               # skip prune pass
-    python synthesizer.py --dry-run                # don't write, delete, or push
+Usage (run from repo root):
+    python scripts/synthesizer.py                          # process all unsynthesized + prune 30d default
+    python scripts/synthesizer.py --limit 5                # cap synthesis per run (oldest first)
+    python scripts/synthesizer.py --prune-older-than 60    # override retention window
+    python scripts/synthesizer.py --no-prune               # skip prune pass
+    python scripts/synthesizer.py --dry-run                # don't write, delete, or push
 """
 import argparse
 import json
@@ -39,7 +39,7 @@ sys.path.insert(0, SCRIPT_DIR)
 
 from _api import call_llm, configured  # noqa: E402
 
-LOG_REPO = SCRIPT_DIR
+LOG_REPO = os.path.dirname(SCRIPT_DIR)
 SHORT_LOG_DIR = os.path.join(LOG_REPO, "short_log")
 TRANSCRIPTS_DIR = os.path.join(LOG_REPO, "transcripts")
 LONG_LOGS_DIR = os.path.join(LOG_REPO, "long_logs")

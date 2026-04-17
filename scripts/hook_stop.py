@@ -23,7 +23,7 @@ sys.path.insert(0, SCRIPT_DIR)
 
 from _api import call_llm, configured  # noqa: E402
 
-LOG_REPO = SCRIPT_DIR
+LOG_REPO = os.path.dirname(SCRIPT_DIR)
 SHORT_LOG_DIR = os.path.join(LOG_REPO, "short_log")
 TRANSCRIPTS_DIR = os.path.join(LOG_REPO, "transcripts")
 
@@ -119,7 +119,7 @@ SHORT_SYSTEM = (
 
 
 def _load_schema(name):
-    path = os.path.join(SCRIPT_DIR, "schemas", name)
+    path = os.path.join(LOG_REPO, "schemas", name)
     try:
         with open(path, encoding="utf-8") as f:
             return f.read()

@@ -64,12 +64,13 @@ Each layer has a different cadence, lifetime, and consumer. Synthesis flows upwa
 
 ```
 claude-logbook/
-├── _api.py                         # OpenAI-compatible API helper
-├── hook.py                         # UserPromptSubmit
-├── hook_stop.py                    # Stop
-├── session_start.py                # SessionStart (project_card injection)
-├── synthesizer.py                  # Scheduled synthesis
-├── audit.py                        # retrieval primitives (filter + aggregate)
+├── scripts/
+│   ├── _api.py                     # OpenAI-compatible API helper
+│   ├── hook.py                     # UserPromptSubmit
+│   ├── hook_stop.py                # Stop
+│   ├── session_start.py            # SessionStart (project_card injection)
+│   ├── synthesizer.py              # Scheduled synthesis
+│   └── audit.py                    # retrieval primitives (filter + aggregate)
 ├── run_synth.bat                   # Windows Task Scheduler wrapper
 ├── .claude/commands/audit.md       # /audit slash command
 ├── docs/settings.example.json      # hook + env wiring (sanitized)
@@ -127,21 +128,21 @@ The four wires:
 
 | Hook | Script | What it does |
 |---|---|---|
-| `UserPromptSubmit` | `hook.py` | Append prompt to transcript; write placeholder short_log entry |
-| `Stop` | `hook_stop.py` | Append assistant reply; fill AI fields on the short_log entry |
+| `UserPromptSubmit` | `scripts/hook.py` | Append prompt to transcript; write placeholder short_log entry |
+| `Stop` | `scripts/hook_stop.py` | Append assistant reply; fill AI fields on the short_log entry |
 | `Stop` (optional) | `git add/commit/push` | Auto-sync the log across machines |
-| `SessionStart` | `session_start.py` | Inject project card(s) as additional context |
+| `SessionStart` | `scripts/session_start.py` | Inject project card(s) as additional context |
 
 ### 4. Schedule synthesis
 
-`synthesizer.py` is idempotent: it scans for transcripts without a corresponding long log, processes them, and prunes raw transcripts past the retention window. Wire it however suits you:
+`scripts/synthesizer.py` is idempotent: it scans for transcripts without a corresponding long log, processes them, and prunes raw transcripts past the retention window. Wire it however suits you:
 
 **Linux / macOS — cron:**
 ```cron
-30 3 * * * cd /home/you/src/claude-logbook && /usr/bin/python3 synthesizer.py >> last_run.log 2>&1
+30 3 * * * cd /home/you/src/claude-logbook && /usr/bin/python3 scripts/synthesizer.py >> last_run.log 2>&1
 ```
 
-**Windows — Task Scheduler:** point a daily trigger at `run_synth.bat`. It cd's to the script directory and inherits your user environment vars.
+**Windows — Task Scheduler:** point a daily trigger at `run_synth.bat`. It cd's to the repo root and invokes `scripts/synthesizer.py`, inheriting your user environment vars.
 
 **Cloud — [Claude Schedule](https://docs.claude.com/en/docs/claude-code/schedule)** (or any remote cron): runs even when your machine is off. The synthesizer pulls before reading and pushes after writing, so multi-trigger conflicts resolve via fast-forward.
 

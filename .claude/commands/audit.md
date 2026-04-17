@@ -20,31 +20,31 @@ Answer whatever the user asks about their activity log. Compose primitives; don'
 **Which layer answers what:**
 - time-range narrative → long_logs (narratives + decisions) in the window
 - keyword → temporal: short_log filter, then long_log read for depth
-- stats over time/weekday/project → short_log via `audit.py aggregate`
+- stats over time/weekday/project → short_log via `scripts/audit.py aggregate`
 - qualitative synthesis / "workflow weakspots" / patterns → long_logs (dead_ends, closure_status, session_quality, orphaned follow_up_actions)
 - current state of a project → project_card
 - full word-for-word recall → transcript (only if < 30 days old)
 
-## Primitives: `audit.py`
+## Primitives: `scripts/audit.py`
 
 Both subcommands read `short_log/*.jsonl`. For long_logs and project_cards, use the Read tool directly.
 
 **Filter** — mechanical filter over structured fields + keywords:
 ```bash
-python audit.py filter --since "7 days ago" --project myapp --format table
-python audit.py filter --keyword cache --keyword eviction --keyword-mode any --has-ai yes
-python audit.py filter --status unresolved --format session-ids   # then Read each long_log
-python audit.py filter --session-id <uuid> --format jsonl
+python scripts/audit.py filter --since "7 days ago" --project myapp --format table
+python scripts/audit.py filter --keyword cache --keyword eviction --keyword-mode any --has-ai yes
+python scripts/audit.py filter --status unresolved --format session-ids   # then Read each long_log
+python scripts/audit.py filter --session-id <uuid> --format jsonl
 ```
 
 Accepts: `--since`, `--until` (ISO or `N days ago` / `yesterday` / `today`), `--project`, `--branch`, `--status`, `--session-id`, `--keyword` (repeatable), `--keyword-mode any|all`, `--has-ai yes|no|any`, `--limit`, `--format jsonl|table|session-ids`.
 
 **Aggregate** — group-by + metric:
 ```bash
-python audit.py aggregate --group-by weekday --metric turns --format table
-python audit.py aggregate --group-by weekday --metric session_duration_minutes_mean --since "30 days ago"
-python audit.py aggregate --group-by project --metric status_ratio
-python audit.py aggregate --group-by hour --metric turns --project myapp
+python scripts/audit.py aggregate --group-by weekday --metric turns --format table
+python scripts/audit.py aggregate --group-by weekday --metric session_duration_minutes_mean --since "30 days ago"
+python scripts/audit.py aggregate --group-by project --metric status_ratio
+python scripts/audit.py aggregate --group-by hour --metric turns --project myapp
 ```
 
 `--group-by`: `weekday | hour | day | project | branch | status`
